@@ -1,0 +1,21 @@
+DRILL MIGRATION
+---------------
+
+1. generate toolkit.properties, connection.json, oracon.txt and pgcon.txt
+2. create dblink extension
+3. delete from AUD_TABLE_DDL_LOG/AUD2_TABLE_DDL_LOG
+4. delete from PSITE_POSAPICONFIG and PSITE_WEBDB_CONFIGURATION
+5. Update the GDS2_SUBSCR table and set the webhookurl to NULL 
+6. Update GATEWAY.PACKDEF set sw_licensedata and sw_licensestatus to null (Drill Only)
+7. populate initial cube data
+8. create and run the pgcron jobs
+
+LIVE MIGRATION
+--------------
+
+1. generate toolkit.properties, connection.json, oracon.txt and pgcon.txt
+2. create dblink extension
+3. delete from AUD_TABLE_DDL_LOG/AUD2_TABLE_DDL_LOG
+4. populate initial cube data
+5. create and run the pgcron jobs
+
