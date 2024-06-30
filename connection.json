@@ -1,0 +1,4 @@
+{
+    "Connection_1": "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=l)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=GINESYS)));User Id=OPOP;Password=gmpl;DatabaseType=ORACLE",
+    "Connection_2": "Server=g1-erp-pg-dev-01.postgres.database.azure.com;Port=5432;Database=l;User Id=gslpgadmin;Password=G1#Pg@2o24;ApplicationName=w3wp.exe;Ssl Mode=Require;DatabaseType=POSTGRES"
+}
