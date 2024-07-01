@@ -55,17 +55,17 @@ if __name__ == "__main__":
     pgDbName = input('Enter Postgres Database Name: ')
 
     # Modify Oracon.txt
-    file1 = r'C:\Users\sultan\Documents\GitHub\FinalMig\OraCon.txt'
-    updateOraCon(OraSchema, OraHost, file1)
+    oracon = r'C:\Users\sultan.m\Documents\GitHub\FinalMig\OraCon.txt'
+    updateOraCon(OraSchema, OraHost, oracon)
 
     # Modify PgCon.txt
-    file2 = r'C:\Users\sultan\Documents\GitHub\FinalMig\pgCon.txt'
-    updatepgCon(pgDbName, file2)
+    pgcon = r'C:\Users\sultan.m\Documents\GitHub\FinalMig\pgCon.txt'
+    updatepgCon(pgDbName, pgcon)
 
     # Modify toolkit.properties
-    toolkit_path = r'C:\Users\sultan\Documents\GitHub\FinalMig\toolkit.properties'
+    toolkit_path = r'C:\Users\sultan.m\Documents\GitHub\FinalMig\toolkit.properties'
     updateToolkit(OraSchema, OraHost, pgDbName, toolkit_path)
 
     #Modify the connection.json
-    connection_json = r'C:\Users\sultan\Documents\GitHub\FinalMig\connection.json'
+    connection_json = r'C:\Users\sultan.m\Documents\GitHub\FinalMig\connection.json'
     updateConnectionJson(OraSchema, OraHost, pgDbName, connection_json)
