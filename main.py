@@ -138,6 +138,58 @@ def executePatch(dbname, patch_path, log_window):
         if connection:
             connection.close()
 
+def createJobs(schema_name, dbname, job_patch, log_window):
+    try:
+        with open(job_patch, 'r') as f1:
+            content = f1.read()
+
+        patterns = [
+            (r"select cron\.schedule_in_database\('GINESYS_AUTO_SETTLEMENT_JOB_[^']+','[^']+','[^']+','[^']+'\);",
+             f"select cron.schedule_in_database('GINESYS_AUTO_SETTLEMENT_JOB_{schema_name.upper()}','*/15 * * * *','call main.db_pro_auto_settle_unpost()','{dbname}');"),
+            (r"select cron\.schedule_in_database\('GINESYS_DATA_SERVICE_2[^']+','[^']+','[^']+','[^']+'\);",
+             f"select cron.schedule_in_database('GINESYS_DATA_SERVICE_2_{schema_name.upper()}','*/1 * * * *','call main.db_pro_gds2_event_enqueue()','{dbname}');"),
+            (r"select cron\.schedule_in_database\('GINESYS_INVSTOCK_INTRA_LOG_AGG[^']+','[^']+','[^']+','[^']+'\);",
+             f"select cron.schedule_in_database('GINESYS_INVSTOCK_INTRA_LOG_AGG_{schema_name.upper()}','30 seconds','call main.invstock_intra_log_refresh()','{dbname}');"),
+            (r"select cron\.schedule_in_database\('GINESYS_INVSTOCK_LOG_AGG[^']+','[^']+','[^']+','[^']+'\);",
+             f"select cron.schedule_in_database('GINESYS_INVSTOCK_LOG_AGG_{schema_name.upper()}','30 seconds','call main.invstock_log_refresh()','{dbname}');"),
+            (r"select cron\.schedule_in_database\('GINESYS_PERIOD_CLOSURE_JOB[^']+','[^']+','[^']+','[^']+'\);",
+             f"select cron.schedule_in_database('GINESYS_PERIOD_CLOSURE_JOB_{schema_name.upper()}','*/2 * * * *','call main.db_pro_period_closure_dequeue()','{dbname}');"),
+            (r"select cron\.schedule_in_database\('GINESYS_POS_STLM_AUDIT[^']+','[^']+','[^']+','[^']+'\);",
+             f"select cron.schedule_in_database('GINESYS_POS_STLM_AUDIT_{schema_name.upper()}','*/5 * * * *','call main.db_pro_pos_stlm_audit()','{dbname}');"),
+            (r"select cron\.schedule_in_database\('GINESYS_RECALCULATE_TAX_JOB[^']+','[^']+','[^']+','[^']+'\);",
+             f"select cron.schedule_in_database('GINESYS_RECALCULATE_TAX_JOB_{schema_name.upper()}','*/30 * * * *','call main.db_pro_recalculategst()','{dbname}');"),
+            (r"select cron\.schedule_in_database\('GINESYS_STOCK_BOOK_PIPELINE_DELTA_AGG[^']+','[^']+','[^']+','[^']+'\);",
+             f"select cron.schedule_in_database('GINESYS_STOCK_BOOK_PIPELINE_DELTA_AGG_{schema_name.upper()}','*/5 * * * *','call db_pro_delta_agg_pipeline_stock()','{dbname}');"),
+            (r"select cron\.schedule_in_database\('GINESYS_STOCK_BOOK_SUMMARY_DELTA_AGG[^']+','[^']+','[^']+','[^']+'\);",
+             f"select cron.schedule_in_database('GINESYS_STOCK_BOOK_SUMMARY_DELTA_AGG_{schema_name.upper()}','*/5 * * * *','call db_pro_delta_agg_stock_book_summary()','{dbname}');"),
+            (r"select cron\.schedule_in_database\('GINESYS_STOCK_AGEING_DELTA_AGG[^']+','[^']+','[^']+','[^']+'\);",
+             f"select cron.schedule_in_database('GINESYS_STOCK_AGEING_DELTA_AGG_{schema_name.upper()}','*/5 * * * *','call db_pro_delta_agg_stock_age_analysis()','{dbname}');")
+        ]
+
+        for pattern, replacement in patterns:
+            content = re.sub(pattern, replacement, content)
+
+        with open(job_patch, 'w') as f1:
+            f1.write(content)
+
+        # Connect to the PostgreSQL database and execute the patched SQL
+        connection = psycopg2.connect(database=dbname, user='postgres', password='postgres', host="10.1.0.8", port=5432)
+        cursor = connection.cursor()
+        cursor.execute(content)
+        connection.commit()
+
+        log_window.append(f'Successfully executed job patch {job_patch} on database {dbname}.')
+    except psycopg2.Error as e:
+        log_window.append(f'Error executing job patch {job_patch} on database {dbname}: {e}')
+    except Exception as e:
+        log_window.append(f'Unexpected error executing job patch {job_patch} on database {dbname}: {e}')
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
 class UpdateConnectionApp(QWidget):
     def __init__(self):
         super().__init__()
@@ -170,10 +222,6 @@ class UpdateConnectionApp(QWidget):
         self.updateButton.clicked.connect(self.updateConnections)
         button_layout.addWidget(self.updateButton)
 
-        self.exitButton = QPushButton('Exit')
-        self.exitButton.clicked.connect(self.closeApplication)
-        button_layout.addWidget(self.exitButton)
-
         self.migrationButton = QPushButton('Run Migration App')
         self.migrationButton.clicked.connect(self.runMigrationApp)
         button_layout.addWidget(self.migrationButton)
@@ -194,6 +242,14 @@ class UpdateConnectionApp(QWidget):
         self.patchButton = QPushButton('Execute SQL Patch')
         self.patchButton.clicked.connect(self.executeSQLPatch)
         button_layout.addWidget(self.patchButton)
+
+        self.createJobsButton = QPushButton('Create Jobs')
+        self.createJobsButton.clicked.connect(self.createJobs)
+        button_layout.addWidget(self.createJobsButton)
+
+        self.exitButton = QPushButton('Exit')
+        self.exitButton.clicked.connect(self.closeApplication)
+        button_layout.addWidget(self.exitButton)
 
         self.logWindow = QTextEdit()
         self.logWindow.setReadOnly(True)
@@ -258,6 +314,32 @@ class UpdateConnectionApp(QWidget):
         else:
             QMessageBox.warning(self, 'Database not found', 'Unable to determine database name from pgCon.txt.')
 
+    def createJobs(self):
+        oracon_path = r'C:\Users\sultan.m\Documents\GitHub\FinalMig\OraCon.txt'
+        pgCon_path = r'C:\Users\sultan.m\Documents\GitHub\FinalMig\pgCon.txt'
+        job_patch = r'C:\Users\sultan.m\Documents\GitHub\FinalMig\patch_jobs.sql'
+
+        with open(oracon_path, 'r') as f1:
+            content = f1.read()
+        schema_match = re.search(r'User Id=([^;]+)', content)
+        if schema_match:
+            schema_name = schema_match.group(1)
+            self.logWindow.append(f"Schema name found: {schema_name}")
+        else:
+            self.logWindow.append("Schema name not found in OraCon.txt")
+            return
+
+        with open(pgCon_path, 'r') as file:
+            content = file.read()
+        dbname_match = re.search(r'Database=([^;]+)', content)
+        if dbname_match:
+            dbname = dbname_match.group(1)
+            self.logWindow.append(f"Database name found: {dbname}")
+        else:
+            self.logWindow.append("Database name not found in pgCon.txt")
+            return
+
+        createJobs(schema_name, dbname, job_patch, self.logWindow)
 
     def runMigrationApp(self):
         migrationapp = r'C:\Users\sultan.m\Documents\GitHub\FinalMig\migrationapp.exe'
