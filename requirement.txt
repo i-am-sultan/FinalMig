@@ -18,4 +18,3 @@ LIVE MIGRATION
 3. delete from AUD_TABLE_DDL_LOG/AUD2_TABLE_DDL_LOG
 4. populate initial cube data
 5. create and run the pgcron jobs
-
