@@ -21,9 +21,9 @@ def runCompToolApp(app1path):
 
 
 if __name__ == "__main__":
-    migrationapp = r'C:\Users\sultan\Documents\GitHub\FinalMig\demo.bat'
-    audittriggerapp = r'C:\Users\sultan\Documents\GitHub\FinalMig\demo.bat'
-    comparetoolapp = r'C:\Users\sultan\Documents\GitHub\FinalMig\demo.bat'
+    migrationapp = r'C:\Users\sultan\Documents\GitHub\FinalMig\migrationapp.exe'
+    audittriggerapp = r'C:\Users\sultan\Documents\GitHub\FinalMig\audittriggerapp.exe'
+    comparetoolapp = r'C:\Users\sultan\Documents\GitHub\FinalMig\comparetoolapp.exe'
 
     runMigrationApp(migrationapp)
     runAuditApp(audittriggerapp)
