@@ -11,18 +11,27 @@ def executePatch(dbname, patch_path):
     # Now you can execute the patched SQL content
 
 if __name__ == "__main__":
-    patch_drill = r'C:\Users\sultan.m\Documents\GitHub\FinalMig\patch_drill.sql'
-    patch_live = r'C:\Users\sultan.m\Documents\GitHub\FinalMig\patch_live.sql'
-    pgCon_path = r'C:\Users\sultan.m\Documents\GitHub\FinalMig\pgCon.txt'
+    patch_drill = r'C:\Users\sultan\Documents\GitHub\FinalMig\patch_drill.sql'
+    patch_live = r'C:\Users\sultan\Documents\GitHub\FinalMig\patch_live.sql'
+    pgCon_path = r'C:\Users\sultan\Documents\GitHub\FinalMig\pgCon.txt'
     
     with open(pgCon_path, 'r') as file:
         content = file.read()
         dbname = re.search(r'Database=([^;]+)', content)
         dbname = dbname.group(1)
         dbname = "'" + dbname + "'"
+        print(dbname)
     
     # Modify patch_drill
     with open(patch_drill, 'r') as f1:
+        content = f1.read()
+        content = re.sub(r"dbname [^,]+", f"dbname {dbname}", content)
+    
+    with open(patch_drill, 'w') as f1:
+        f1.write(content)
+
+    # Modify patch_live
+    with open(patch_live , 'r') as f1:
         content = f1.read()
         content = re.sub(r"dbname [^,]+", f"dbname {dbname}", content)
     
