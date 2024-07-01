@@ -14,7 +14,8 @@ def updateOraCon(OraSchema, OraHost, filepath, log_window):
     content = re.sub(r'HOST=[^)]*', f'HOST={OraHost}', content)
     with open(filepath, 'w') as f1:
         f1.write(content)
-    log_window.append('oracon updated')
+    log_window.append('OraCon: ')
+    log_window.append(content)
 
 def updatepgCon(pgDbName, filepath, log_window):
     with open(filepath, 'r') as f1:
@@ -22,7 +23,8 @@ def updatepgCon(pgDbName, filepath, log_window):
     content = re.sub(r'Database=[^;]+;', f'Database={pgDbName};', content)
     with open(filepath, 'w') as f1:
         f1.write(content)
-    log_window.append('pgcon updated')
+    log_window.append('\npgCon: ')
+    log_window.append(content)
 
 def updateToolkit(OraSchema, OraHost, pgDbName, filepath, log_window):
     with open(filepath, 'r') as f1:
@@ -32,7 +34,8 @@ def updateToolkit(OraSchema, OraHost, pgDbName, filepath, log_window):
     content = re.sub(r':5432/[^\s]+', f':5432/{pgDbName}', content)
     with open(filepath, 'w') as f1:
         f1.write(content)
-    log_window.append('toolkit updated')
+    log_window.append('\ntoolkit.properties: ')
+    log_window.append(content)
 
 def updateConnectionJson(OraSchema, OraHost, pgDbName, filepath, log_window):
     with open(filepath, 'r') as f:
@@ -51,7 +54,7 @@ def updateConnectionJson(OraSchema, OraHost, pgDbName, filepath, log_window):
     with open(filepath, 'w') as f:
         json.dump(data, f, indent=4)
 
-    log_window.append('connection.json updated')
+    log_window.append('\nconnection.json: ')
     log_window.append(json.dumps(data, indent=4))
 
 def copyFiles(destination_dir, log_window):
@@ -64,6 +67,7 @@ def copyFiles(destination_dir, log_window):
         shutil.copy(pgcon_path, destination_dir)
         
         log_window.append('Files copied successfully.')
+        log_window.append(f'Files copied from {oracon_path} and {pgcon_path} to {destination_dir}')
         return True
     except Exception as e:
         log_window.append(f'Error copying files: {e}')
