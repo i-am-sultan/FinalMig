@@ -1,7 +1,7 @@
 CREATE EXTENSION DBLINK;
 CREATE SERVER foreign_pgbase
     FOREIGN DATA WRAPPER dblink_fdw
-    OPTIONS (dbname 'pgbase', host 'psql-erp-prod-01.postgres.database.azure.com', port '5432');
+    OPTIONS (dbname 'pgdev', host 'psql-erp-prod-01.postgres.database.azure.com', port '5432');
 
 ALTER SERVER foreign_pgbase
     OWNER TO gslpgadmin;

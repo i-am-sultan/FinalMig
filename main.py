@@ -139,6 +139,9 @@ def executePatch(dbname, patch_path, log_window):
             connection.close()
 
 def createJobs(schema_name, dbname, job_patch, log_window):
+    connection = None
+    cursor = None
+    
     try:
         with open(job_patch, 'r') as f1:
             content = f1.read()
@@ -196,10 +199,8 @@ class UpdateConnectionApp(QWidget):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle('Update Connections')
-
+        self.setWindowTitle('Ginesys Migration Application')
         main_layout = QVBoxLayout()
-
         form_layout = QVBoxLayout()
         
         self.oraSchemaLabel = QLabel('Oracle Schema:')
@@ -239,7 +240,7 @@ class UpdateConnectionApp(QWidget):
         self.patchComboBox.addItem("Live Migration")
         button_layout.addWidget(self.patchComboBox)
 
-        self.patchButton = QPushButton('Execute SQL Patch')
+        self.patchButton = QPushButton('Execute PostMig SQL')
         self.patchButton.clicked.connect(self.executeSQLPatch)
         button_layout.addWidget(self.patchButton)
 
