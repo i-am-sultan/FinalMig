@@ -127,29 +127,29 @@ def executePatch(dbname, patch_path, log_window):
         # Execute the SQL content
         cursor.execute(content)
         # Execute the block of procedures
-        cursor.execute("""
-        DO $$
-        DECLARE
-            DTFR DATE;
-        BEGIN
-            SELECT CURRENT_DATE - (365+180) INTO DTFR;
+        # cursor.execute("""
+        # DO $$
+        # DECLARE
+        #     DTFR DATE;
+        # BEGIN
+        #     SELECT CURRENT_DATE - (365+180) INTO DTFR;
             
-            -- For site-to-site:
-            CALL main.db_pro_sitetositemovement_firsttimepopulation_outward(DTFR, CURRENT_DATE);
-            --CALL main.db_pro_sitetositemovement_firsttimepopulation_inward(DTFR, CURRENT_DATE);
-            CALL main.db_pro_sitetositemovement_not_in_outward();
-            CALL main.db_proc_sitetosite_intransum(DTFR); -- Start date
+        #     -- For site-to-site:
+        #     CALL main.db_pro_sitetositemovement_firsttimepopulation_outward(DTFR, CURRENT_DATE);
+        #     --CALL main.db_pro_sitetositemovement_firsttimepopulation_inward(DTFR, CURRENT_DATE);
+        #     CALL main.db_pro_sitetositemovement_not_in_outward();
+        #     CALL main.db_proc_sitetosite_intransum(DTFR); -- Start date
             
-            -- For composite GST:
-            CALL main.db_pro_compositegst_firsttimepopulation(DTFR, CURRENT_DATE);
+        #     -- For composite GST:
+        #     CALL main.db_pro_compositegst_firsttimepopulation(DTFR, CURRENT_DATE);
             
-            -- For stock book summary:
-            CALL main.db_pro_stk_bk_summary_master_build(DTFR);
+        #     -- For stock book summary:
+        #     CALL main.db_pro_stk_bk_summary_master_build(DTFR);
             
-            -- For stock ageing summary:
-            CALL db_pro_stk_ageing_firsttime();
-        END $$;
-        """)
+        #     -- For stock ageing summary:
+        #     CALL db_pro_stk_ageing_firsttime();
+        # END $$;
+        # """)
         # Commit the transaction
         connection.commit()
         # Log successful execution
