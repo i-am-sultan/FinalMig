@@ -66,6 +66,8 @@ def updatePatchDrill(pgDbname, filepath, log_window):
 
         # Modify the content to replace dbname with pgDbname
         content = re.sub(r"OPTIONS \(dbname '[^']+\'", f"OPTIONS (dbname '{pgDbname}'", content)
+        content = re.sub(r'REVOKE ALL ON DATABASE "[^"]+',f'REVOKE ALL ON DATABASE "{pgDbname}',content)
+        content = re.sub(r'GRANT CONNECT ON DATABASE "[^"]+',f'GRANT CONNECT ON DATABASE "{pgDbname}',content)
 
         with open(filepath, 'w') as f:
             f.write(content)
@@ -81,6 +83,8 @@ def updatePatchLive(pgDbname, filepath, log_window):
 
         # Modify the content to replace dbname with pgDbname
         content = re.sub(r"OPTIONS \(dbname '[^']+\'", f"OPTIONS (dbname '{pgDbname}'", content)
+        content = re.sub(r'REVOKE ALL ON DATABASE "[^"]+',f'REVOKE ALL ON DATABASE "{pgDbname}',content)
+        content = re.sub(r'GRANT CONNECT ON DATABASE "[^"]+',f'GRANT CONNECT ON DATABASE "{pgDbname}',content)
 
         with open(filepath, 'w') as f:
             f.write(content)
@@ -122,6 +126,30 @@ def executePatch(dbname, patch_path, log_window):
         cursor = connection.cursor()
         # Execute the SQL content
         cursor.execute(content)
+        # Execute the block of procedures
+        cursor.execute("""
+        DO $$
+        DECLARE
+            DTFR DATE;
+        BEGIN
+            SELECT CURRENT_DATE - (365+180) INTO DTFR;
+            
+            -- For site-to-site:
+            CALL main.db_pro_sitetositemovement_firsttimepopulation_outward(DTFR, CURRENT_DATE);
+            --CALL main.db_pro_sitetositemovement_firsttimepopulation_inward(DTFR, CURRENT_DATE);
+            CALL main.db_pro_sitetositemovement_not_in_outward();
+            CALL main.db_proc_sitetosite_intransum(DTFR); -- Start date
+            
+            -- For composite GST:
+            CALL main.db_pro_compositegst_firsttimepopulation(DTFR, CURRENT_DATE);
+            
+            -- For stock book summary:
+            CALL main.db_pro_stk_bk_summary_master_build(DTFR);
+            
+            -- For stock ageing summary:
+            CALL db_pro_stk_ageing_firsttime();
+        END $$;
+        """)
         # Commit the transaction
         connection.commit()
         # Log successful execution
@@ -176,7 +204,7 @@ def createJobs(schema_name, dbname, job_patch, log_window):
             f1.write(content)
 
         # Connect to the PostgreSQL database and execute the patched SQL
-        connection = psycopg2.connect(database=dbname, user='gslpgadmin', password='qs$3?j@*>CA6!#Dy', host="psql-erp-prod-01.postgres.database.azure.com", port=5432)
+        connection = psycopg2.connect(database='postgres', user='gslpgadmin', password='qs$3?j@*>CA6!#Dy', host="psql-erp-prod-01.postgres.database.azure.com", port=5432)
         cursor = connection.cursor()
         cursor.execute(content)
         connection.commit()
@@ -191,20 +219,6 @@ def createJobs(schema_name, dbname, job_patch, log_window):
             cursor.close()
         if connection:
             connection.close()
-
-
-import sys
-import re
-import json
-import shutil
-import subprocess
-import psycopg2
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, 
-    QMessageBox, QTextEdit, QHBoxLayout, QComboBox
-)
-
-# ... (other code remains the same)
 
 class UpdateConnectionApp(QWidget):
     def __init__(self):
@@ -318,13 +332,13 @@ class UpdateConnectionApp(QWidget):
             pgDbname = dbname_match.group(1)
 
             if patch_choice == "Drill":
-                patch_path = r'C:\Program Files\edb\prodmig\PostMigPatches\patch_drill.sql'
-                updatePatchDrill(pgDbname, patch_path, self.logWindow)
-                executePatch(pgDbname, patch_path, self.logWindow)  # Example execution after update
+                patch_drill = r'C:\Program Files\edb\prodmig\PostMigPatches\patch_drill.sql'
+                updatePatchDrill(pgDbname, patch_drill, self.logWindow)
+                executePatch(pgDbname, patch_drill, self.logWindow)  # Example execution after update
             elif patch_choice == "Live Migration":
-                patch_path = r'C:\Program Files\edb\prodmig\PostMigPatches\patch_live.sql'
-                updatePatchLive(pgDbname, patch_path, self.logWindow)
-                executePatch(pgDbname, patch_path, self.logWindow)  # Example execution after update
+                patch_live = r'C:\Program Files\edb\prodmig\PostMigPatches\patch_live.sql'
+                updatePatchLive(pgDbname, patch_live, self.logWindow)
+                executePatch(pgDbname, patch_live, self.logWindow)  # Example execution after update
         else:
             QMessageBox.warning(self, 'Database not found', 'Unable to determine database name from pgCon.txt.')
 
