@@ -21,7 +21,9 @@ def updateOraCon(OraSchema, OraHost,oraPort, OraPass,OraService, filepath, log_w
     log_window.append(content)
 
 def updatepgCon(pgHost,pgPort, pgUser,pgPass, pgDbName, filepath, log_window):
+    print(f"pgPort: {pgPort}")
     content = (f"Server={pgHost};Port={pgPort};Database={pgDbName};User Id={pgUser};Password={pgPass};ApplicationName=w3wp.exe;Ssl Mode=Require;")
+    print(content)
     with open(filepath, 'w') as f1:
         f1.write(content)
     log_window.append('\npgCon: ')
@@ -128,8 +130,13 @@ def executePatch(dbname, patch_path, log_window):
         # Connect to the PostgreSQL database
         connection = psycopg2.connect(database=dbname, user='gslpgadmin', password='qs$3?j@*>CA6!#Dy', host="psql-erp-prod-01.postgres.database.azure.com", port=5432)
         cursor = connection.cursor()
-        # Execute the SQL content
         cursor.execute(content)
+        connection.commit()
+        
+        connection = psycopg2.connect(database=dbname, user='gslpgadmin', password='qs$3?j@*>CA6!#Dy', host="psql-erp-prod-01.postgres.database.azure.com", port=5432)
+        connection.autocommit = True
+        cursor = connection.cursor()
+        cursor.execute('CALL populate_first_time_migdata()')
         # Commit the transaction
         connection.commit()
         # Log successful execution
@@ -370,7 +377,8 @@ class UpdateConnectionApp(QWidget):
             connection_json_path = r'C:\Program Files\edb\prodmig\Ora2PGCompToolKit\Debug\Connection.json'
 
             updateOraCon(OraSchema, OraHost,OraPort,OraPass,OraService, oracon_path, self.logWindow)
-            updatepgCon(pgHost,pgUser,pgPass, pgPort,pgDbName, pgcon_path, self.logWindow)
+            print(f"pgHost{pgHost},pgUser{pgUser},pgPass{pgPass}, pgPort{pgPort},pgDbName")
+            updatepgCon(pgHost,pgPort, pgUser,pgPass,pgDbName, pgcon_path, self.logWindow)
             updateToolkit(OraSchema, OraHost,OraPort, OraPass, OraService, pgHost,pgPort, pgUser, pgPass, pgDbName, toolkit_path, self.logWindow)
             updateConnectionJson(OraSchema, OraHost, OraPort, OraPass, OraService, pgHost,pgPort, pgUser, pgPass, pgDbName, connection_json_path, self.logWindow)
 
