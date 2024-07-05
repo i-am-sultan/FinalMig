@@ -9,92 +9,60 @@ from PyQt5.QtWidgets import (
     QMessageBox, QTextEdit, QHBoxLayout, QComboBox
 )
 
-def updateOraCon(OraSchema, OraHost,OraPass,OraService, filepath, log_window):
-    with open(filepath, 'r') as f1:
-        content = f1.read()
-    content = re.sub(r'User Id=[^;]+;', f'User Id={OraSchema.upper()};', content)
-    content = re.sub(r'HOST=[^)]+', f'HOST={OraHost}', content)
-    content = re.sub(r'Password=[^;]+', f'Password={OraPass}', content)
-    content = re.sub(r'SERVICE_NAME=[^)]+', f'SERVICE_NAME={OraService}', content)
+def updateOraCon(OraSchema, OraHost,oraPort, OraPass,OraService, filepath, log_window):
+    content = (
+            f"User Id={OraSchema};Password={OraPass};"
+            f"Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={OraHost})(PORT={oraPort}))"
+            f"(CONNECT_DATA=(SERVICE_NAME={OraService})))"
+        )
     with open(filepath, 'w') as f1:
         f1.write(content)
     log_window.append('OraCon: ')
     log_window.append(content)
 
-def updatepgCon(pgHost,pgUser,pgPass, pgDbName, filepath, log_window):
-    with open(filepath, 'r') as f1:
-        content = f1.read()
-    content = re.sub(r'Database=[^;]+', f'Database={pgDbName}', content)
-    content = re.sub(r'Server=[^;]+', f'Server={pgHost}', content)
-    content = re.sub(r'User Id=[^;]+', f'User Id={pgUser}', content)
-    content = re.sub(r'Password=[^;]+', f'Password={pgPass}', content)
+def updatepgCon(pgHost,pgPort, pgUser,pgPass, pgDbName, filepath, log_window):
+    content = (f"Server={pgHost};Port={pgPort};Database={pgDbName};User Id={pgUser};Password={pgPass};ApplicationName=w3wp.exe;Ssl Mode=Require;")
     with open(filepath, 'w') as f1:
         f1.write(content)
     log_window.append('\npgCon: ')
     log_window.append(content)
 
-def updateToolkit(OraSchema, OraHost, OraPass, OraService, pgHost, pgUser, pgPass, pgDbName, filepath, log_window):
-    with open(filepath, 'r') as f1:
-        content = f1.read()
-
-    print(f"Original content:\n{content}")
-
-    # Replace SRC_DB_URL for Oracle
-    content = re.sub(r'(SRC_DB_URL=jdbc:oracle:thin:@)[^:@]+(:\d+:[^:\s]+)', rf'\1{OraHost}\2', content)
+def updateToolkit(OraSchema, OraHost,OraPort, OraPass, OraService, pgHost, pgPort,pgUser, pgPass, pgDbName, filepath, log_window):
+    # Prepare the new properties
+    oracle_url = f"jdbc:oracle:thin:@{OraHost}:{OraPort}:{OraService}"
+    postgres_url = f"jdbc:postgresql://{pgHost}:{pgPort}/{pgDbName}"
     
-    # Replace Oracle DB user and password
-    content = re.sub(r'SRC_DB_USER=[^\s]+', f'SRC_DB_USER={OraSchema.upper()}', content)
-    content = re.sub(r'SRC_DB_PASSWORD=[^\s]+', f'SRC_DB_PASSWORD={OraPass}', content)
-    
-    # Replace PostgreSQL DB URL, user, password, and database name
-    content = re.sub(r'TARGET_DB_URL=jdbc:postgresql://[^:]+:5432', f'TARGET_DB_URL=jdbc:postgresql://{pgHost}:5432', content)
-    content = re.sub(r'TARGET_DB_USER=[^\s]+', f'TARGET_DB_USER={pgUser}', content)
-    content = re.sub(r'TARGET_DB_PASSWORD=[^\s]+', f'TARGET_DB_PASSWORD={pgPass}', content)
-    content = re.sub(r':5432/[^\s]+', f':5432/{pgDbName}', content)
-
-    print(f"Modified content:\n{content}")
-
+    content = (
+        f"SRC_DB_URL={oracle_url}\n"
+        f"SRC_DB_USER={OraSchema}\n"
+        f"SRC_DB_PASSWORD={OraPass}\n\n"
+        f"TARGET_DB_URL={postgres_url}\n"
+        f"TARGET_DB_USER={pgUser}\n"
+        f"TARGET_DB_PASSWORD={pgPass}\n"
+    )   
     with open(filepath, 'w') as f1:
         f1.write(content)
-
     log_window.append('\ntoolkit.properties: ')
     log_window.append(content)
 
-
-def updateConnectionJson(OraSchema, OraHost, OraPass, OraService, pgHost, pgUser, pgPass, pgDbName, filepath, log_window):
+def updateConnectionJson(OraSchema, OraHost,OraPort, OraPass, OraService, pgHost,pgPort, pgUser, pgPass, pgDbName, filepath, log_window):
     try:
         with open(filepath, 'r') as f:
-            data = json.load(f)
-
-        # Update Oracle connection
-        ora_conn = data["Connection_1"]
-        ora_conn = re.sub(r'User Id=[^;]+;', f'User Id={OraSchema.upper()};', ora_conn)
-        ora_conn = re.sub(r'Password=[^;]+;', f'Password={OraPass};', ora_conn)
-        ora_conn = re.sub(r'HOST=[^)]*', f'HOST={OraHost}', ora_conn)
-        ora_conn = re.sub(r'SERVICE_NAME=[^)]*', f'SERVICE_NAME={OraService}', ora_conn)
-        data["Connection_1"] = ora_conn
-
-        # Update Postgres connection
-        pg_conn = data["Connection_2"]
-        pg_conn = re.sub(r'Server=[^;]+;', f'Server={pgHost};', pg_conn)
-        pg_conn = re.sub(r'Database=[^;]+;', f'Database={pgDbName};', pg_conn)
-        pg_conn = re.sub(r'User Id=[^;]+;', f'User Id={pgUser};', pg_conn)
-        pg_conn = re.sub(r'Password=[^;]+;', f'Password={pgPass};', pg_conn)
-        data["Connection_2"] = pg_conn
-
+            connections = json.load(f)
+        # Update the Oracle connection string
+        connections["Connection_1"] = f"Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={OraHost})(PORT={OraPort}))(CONNECT_DATA=(SERVICE_NAME={OraService})));User Id={OraSchema};Password={OraPass};DatabaseType=ORACLE"
+        # Update the PostgreSQL connection string
+        connections["Connection_2"] = f"Server={pgHost};Port={pgPort};Database={pgDbName};User Id={pgUser};Password={pgPass};ApplicationName=w3wp.exe;Ssl Mode=Require;DatabaseType=POSTGRES"
         with open(filepath, 'w') as f:
-            json.dump(data, f, indent=4)
-
+            json.dump(connections, f, indent=4)
         log_window.append('\nconnection.json updated successfully.')
-        log_window.append(json.dumps(data, indent=4))
-
+        log_window.append(json.dumps(connections, indent=4))
     except FileNotFoundError:
         log_window.append(f'Error: File {filepath} not found.')
     except json.JSONDecodeError as e:
         log_window.append(f'Error: Failed to decode JSON from {filepath}. Details: {str(e)}')
     except Exception as e:
         log_window.append(f'Error updating connection.json: {str(e)}')
-
 
 def updatePatchDrill(pgDbname, filepath, log_window):
     try:
@@ -246,6 +214,11 @@ class UpdateConnectionApp(QWidget):
         self.oraHostInput = QLineEdit()
         form_layout.addWidget(self.oraHostLabel)
         form_layout.addWidget(self.oraHostInput)
+
+        self.oraPortLabel = QLabel('Oracle Port:')
+        self.oraPortInput = QLineEdit()
+        form_layout.addWidget(self.oraPortLabel)
+        form_layout.addWidget(self.oraPortInput)
         
         self.oraSchemaLabel = QLabel('Oracle Schema:')
         self.oraSchemaInput = QLineEdit()
@@ -267,6 +240,11 @@ class UpdateConnectionApp(QWidget):
         self.pgHostInput = QLineEdit()
         form_layout.addWidget(self.pgHostLabel)
         form_layout.addWidget(self.pgHostInput)
+
+        self.pgPortLabel = QLabel('PostgreSQL Port:')
+        self.pgPortInput = QLineEdit()
+        form_layout.addWidget(self.pgPortLabel)
+        form_layout.addWidget(self.pgPortInput)
 
         self.pgUserLabel = QLabel('PostgreSQL Username:')
         self.pgUserInput = QLineEdit()
@@ -338,11 +316,13 @@ class UpdateConnectionApp(QWidget):
                 content = f1.read()
             schema_match = re.search(r'User Id=([^;]+);', content)
             host_match = re.search(r'HOST=([^)]+)', content)
+            port_match = re.search(r'PORT=([^)]+)', content)
             pass_match = re.search(r'Password=([^;]+)', content)
             service_match = re.search(r'SERVICE_NAME=([^)]+)',content)
             if schema_match and host_match and pass_match and service_match:
                 self.oraSchemaInput.setText(schema_match.group(1))
                 self.oraHostInput.setText(host_match.group(1))
+                self.oraPortInput.setText(port_match.group(1))
                 self.oraPassInput.setText(pass_match.group(1))
                 self.oraServiceInput.setText(service_match.group(1))
             else:
@@ -352,11 +332,13 @@ class UpdateConnectionApp(QWidget):
                 content = f1.read()
             dbname_match = re.search(r'Database=([^;]+);', content)
             pghost_match = re.search(r'Server=([^;]+);', content)
+            pgport_match = re.search(r'Port=([^;]+);', content)
             pgpass_match = re.search(r'Password=([^;]+);', content)
             pguser_match = re.search(r'User Id=([^;]+);', content)
             if dbname_match:
                 self.pgDbNameInput.setText(dbname_match.group(1))
                 self.pgHostInput.setText(pghost_match.group(1))
+                self.pgPortInput.setText(pgport_match.group(1))
                 self.pgPassInput.setText(pgpass_match.group(1))
                 self.pgUserInput.setText(pguser_match.group(1))
             else:
@@ -368,14 +350,16 @@ class UpdateConnectionApp(QWidget):
     def updateConnections(self):
         OraSchema = self.oraSchemaInput.text()
         OraHost = self.oraHostInput.text()
+        OraPort = self.oraPortInput.text()
         OraPass = self.oraPassInput.text()
         OraService = self.oraServiceInput.text()
         pgHost = self.pgHostInput.text()
+        pgPort = self.pgPortInput.text()
         pgPass = self.pgPassInput.text()
         pgUser = self.pgUserInput.text()
         pgDbName = self.pgDbNameInput.text()
 
-        if not OraSchema or not OraHost or not OraPass or not OraService or not pgHost or not pgPass or not pgUser or not pgDbName :
+        if not OraSchema or not OraHost or not OraPort or not OraPass or not OraService or not pgHost or not pgPass or not pgUser or not pgDbName or not pgPort:
             QMessageBox.warning(self, 'Input Error', 'Please fill in all fields.')
             return
         try:
@@ -385,10 +369,10 @@ class UpdateConnectionApp(QWidget):
             toolkit_path = r'C:\Program Files\edb\mtk\etc\toolkit.properties'
             connection_json_path = r'C:\Program Files\edb\prodmig\Ora2PGCompToolKit\Debug\Connection.json'
 
-            updateOraCon(OraSchema, OraHost,OraPass,OraService, oracon_path, self.logWindow)
-            updatepgCon(pgHost,pgUser,pgPass, pgDbName, pgcon_path, self.logWindow)
-            updateToolkit(OraSchema, OraHost, OraPass, OraService, pgHost, pgUser, pgPass, pgDbName, toolkit_path, self.logWindow)
-            updateConnectionJson(OraSchema, OraHost, OraPass, OraService, pgHost, pgUser, pgPass, pgDbName, connection_json_path, self.logWindow)
+            updateOraCon(OraSchema, OraHost,OraPort,OraPass,OraService, oracon_path, self.logWindow)
+            updatepgCon(pgHost,pgUser,pgPass, pgPort,pgDbName, pgcon_path, self.logWindow)
+            updateToolkit(OraSchema, OraHost,OraPort, OraPass, OraService, pgHost,pgPort, pgUser, pgPass, pgDbName, toolkit_path, self.logWindow)
+            updateConnectionJson(OraSchema, OraHost, OraPort, OraPass, OraService, pgHost,pgPort, pgUser, pgPass, pgDbName, connection_json_path, self.logWindow)
 
             # Copy the files to the destination directory
             destination_dir = r'C:\Program Files\edb\prodmig\AuditTriggerCMDNew\netcoreapp3.1'
