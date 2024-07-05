@@ -8,12 +8,12 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, 
     QMessageBox, QTextEdit, QHBoxLayout, QComboBox
 )
-
-def updateOraCon(OraSchema, OraHost, filepath, log_window):
+def updateOraCon(OraSchema,OraHost,OraService,OraPassword, filepath, log_window):
     with open(filepath, 'r') as f1:
         content = f1.read()
     content = re.sub(r'User Id=[^;]+;', f'User Id={OraSchema.upper()};', content)
     content = re.sub(r'HOST=[^)]*', f'HOST={OraHost}', content)
+    content = re.sub(r'')
     with open(filepath, 'w') as f1:
         f1.write(content)
     log_window.append('OraCon: ')
@@ -341,12 +341,17 @@ class UpdateConnectionApp(QWidget):
     def updateConnections(self):
         OraSchema = self.oraSchemaInput.text()
         OraHost = self.oraHostInput.text()
+        OraService = self.oraServiceInput.text()
+        OraPassword = self.oraPassInput.text()
+
+        pgHost = self.pgHostInput.text()
+        pgUser = self.pgUserInput.text()
+        pgPass = self.pgPassInput.text()
         pgDbName = self.pgDbNameInput.text()
 
-        if not OraSchema or not OraHost or not pgDbName:
+        if not OraSchema or not OraHost or not pgDbName or not OraService or not OraPassword or not pgHost or not pgUser or not pgPass:
             QMessageBox.warning(self, 'Input Error', 'Please fill in all fields.')
             return
-
         try:
             # Pre-specified file paths
             oracon_path = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\OraCon.txt'
@@ -354,10 +359,10 @@ class UpdateConnectionApp(QWidget):
             toolkit_path = r'C:\Program Files\edb\mtk\etc\toolkit.properties'
             connection_json_path = r'C:\Program Files\edb\prodmig\Ora2PGCompToolKit\Debug\Connection.json'
 
-            updateOraCon(OraSchema, OraHost, oracon_path, self.logWindow)
-            updatepgCon(pgDbName, pgcon_path, self.logWindow)
-            updateToolkit(OraSchema, OraHost, pgDbName, toolkit_path, self.logWindow)
-            updateConnectionJson(OraSchema, OraHost, pgDbName, connection_json_path, self.logWindow)
+            updateOraCon(OraSchema,OraHost,OraService,OraPassword, oracon_path, self.logWindow)
+            updatepgCon(pgHost, pgUser, pgPass, pgDbName, pgcon_path, self.logWindow)
+            updateToolkit(OraSchema, OraHost,OraService,OraPassword,pgHost,pgUser,pgPass, pgDbName, toolkit_path, self.logWindow)
+            updateConnectionJson(OraSchema, OraHost,OraService,OraPassword,pgHost,pgUser,pgPass, pgDbName,connection_json_path, self.logWindow)
 
             # Copy the files to the destination directory
             destination_dir = r'C:\Program Files\edb\prodmig\AuditTriggerCMDNew\netcoreapp3.1'
