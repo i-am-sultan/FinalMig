@@ -1,7 +1,3 @@
-DELETE FROM Psite_Posapiconfig;
-DELETE FROM Psite_webdb_configuration;
-UPDATE GDS2_Subscr SET webhookurl = NULL;
-
 CREATE EXTENSION DBLINK;
 -- Foreign Server: foreign_pgbase
 
