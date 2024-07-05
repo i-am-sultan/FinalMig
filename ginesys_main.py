@@ -5,8 +5,8 @@ import shutil
 import subprocess
 import psycopg2
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, 
-    QMessageBox, QTextEdit, QHBoxLayout, QComboBox
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
+    QLineEdit, QPushButton, QComboBox, QTextEdit, QMessageBox
 )
 
 def updateOraCon(OraSchema, OraHost,oraPort, OraPass,OraService, filepath, log_window):
@@ -215,58 +215,57 @@ class UpdateConnectionApp(QWidget):
     def initUI(self):
         self.setWindowTitle('Ginesys Migration Application')
         main_layout = QVBoxLayout()
-        form_layout = QVBoxLayout()
+        form_layout = QGridLayout()
 
+        # Oracle credentials
         self.oraHostLabel = QLabel('Oracle Host:')
         self.oraHostInput = QLineEdit()
-        form_layout.addWidget(self.oraHostLabel)
-        form_layout.addWidget(self.oraHostInput)
-
         self.oraPortLabel = QLabel('Oracle Port:')
         self.oraPortInput = QLineEdit()
-        form_layout.addWidget(self.oraPortLabel)
-        form_layout.addWidget(self.oraPortInput)
-        
         self.oraSchemaLabel = QLabel('Oracle Schema:')
         self.oraSchemaInput = QLineEdit()
-        form_layout.addWidget(self.oraSchemaLabel)
-        form_layout.addWidget(self.oraSchemaInput)
-
-
         self.oraPassLabel = QLabel('Oracle Password:')
         self.oraPassInput = QLineEdit()
-        form_layout.addWidget(self.oraPassLabel)
-        form_layout.addWidget(self.oraPassInput)
-
         self.oraServiceLabel = QLabel('Oracle Service:')
         self.oraServiceInput = QLineEdit()
-        form_layout.addWidget(self.oraServiceLabel)
-        form_layout.addWidget(self.oraServiceInput)
 
+        # PostgreSQL credentials
         self.pgHostLabel = QLabel('PostgreSQL Host:')
         self.pgHostInput = QLineEdit()
-        form_layout.addWidget(self.pgHostLabel)
-        form_layout.addWidget(self.pgHostInput)
-
         self.pgPortLabel = QLabel('PostgreSQL Port:')
         self.pgPortInput = QLineEdit()
-        form_layout.addWidget(self.pgPortLabel)
-        form_layout.addWidget(self.pgPortInput)
-
         self.pgUserLabel = QLabel('PostgreSQL Username:')
         self.pgUserInput = QLineEdit()
-        form_layout.addWidget(self.pgUserLabel)
-        form_layout.addWidget(self.pgUserInput)
-
         self.pgPassLabel = QLabel('PostgreSQL Password:')
         self.pgPassInput = QLineEdit()
-        form_layout.addWidget(self.pgPassLabel)
-        form_layout.addWidget(self.pgPassInput)
-
         self.pgDbNameLabel = QLabel('PostgreSQL Database Name:')
         self.pgDbNameInput = QLineEdit()
-        form_layout.addWidget(self.pgDbNameLabel)
-        form_layout.addWidget(self.pgDbNameInput)
+
+        # Adding widgets to grid layout
+        form_layout.addWidget(self.oraHostLabel, 0, 0)
+        form_layout.addWidget(self.oraHostInput, 0, 1)
+        form_layout.addWidget(self.pgHostLabel, 0, 2)
+        form_layout.addWidget(self.pgHostInput, 0, 3)
+
+        form_layout.addWidget(self.oraPortLabel, 1, 0)
+        form_layout.addWidget(self.oraPortInput, 1, 1)
+        form_layout.addWidget(self.pgPortLabel, 1, 2)
+        form_layout.addWidget(self.pgPortInput, 1, 3)
+
+        form_layout.addWidget(self.oraSchemaLabel, 2, 0)
+        form_layout.addWidget(self.oraSchemaInput, 2, 1)
+        form_layout.addWidget(self.pgUserLabel, 2, 2)
+        form_layout.addWidget(self.pgUserInput, 2, 3)
+
+        form_layout.addWidget(self.oraPassLabel, 3, 0)
+        form_layout.addWidget(self.oraPassInput, 3, 1)
+        form_layout.addWidget(self.pgPassLabel, 3, 2)
+        form_layout.addWidget(self.pgPassInput, 3, 3)
+
+        form_layout.addWidget(self.oraServiceLabel, 4, 0)
+        form_layout.addWidget(self.oraServiceInput, 4, 1)
+        form_layout.addWidget(self.pgDbNameLabel, 4, 2)
+        form_layout.addWidget(self.pgDbNameInput, 4, 3)
 
         button_layout = QHBoxLayout()
         self.updateButton = QPushButton('Update Connections')
@@ -312,7 +311,7 @@ class UpdateConnectionApp(QWidget):
         self.setLayout(main_layout)
         # Load initial credentials from configuration files
         self.loadCredentialsFromFiles()
-
+    
     def loadCredentialsFromFiles(self):
         try:
             # Pre-specified file paths
