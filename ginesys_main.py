@@ -29,6 +29,18 @@ def updatepgCon(pgDbName, filepath, log_window):
     log_window.append(content)
 
 def updateToolkit(OraSchema, OraHost, pgDbName, filepath, log_window):
+    # Prepare the new properties
+    oracle_url = f"jdbc:oracle:thin:@{OraHost}:{oracle_port}:{oracle_service}"
+    postgres_url = f"jdbc:postgresql://{postgres_host}:{postgres_port}/{postgres_dbname}"
+    
+    properties_content = (
+        f"SRC_DB_URL={oracle_url}\n"
+        f"SRC_DB_USER={oracle_user}\n"
+        f"SRC_DB_PASSWORD={oracle_password}\n\n"
+        f"TARGET_DB_URL={postgres_url}\n"
+        f"TARGET_DB_USER={postgres_user}\n"
+        f"TARGET_DB_PASSWORD={postgres_password}\n"
+    )
     with open(filepath, 'r') as f1:
         content = f1.read()
     content = re.sub(r'SRC_DB_URL=jdbc:oracle:thin:@[^:]+', f'SRC_DB_URL=jdbc:oracle:thin:@{OraHost}', content)
@@ -126,31 +138,6 @@ def executePatch(dbname, patch_path, log_window):
         cursor = connection.cursor()
         # Execute the SQL content
         cursor.execute(content)
-        # Execute the block of procedures
-        # cursor.execute("""
-        # DO $$
-        # DECLARE
-        #     DTFR DATE;
-        # BEGIN
-        #     SELECT CURRENT_DATE - (365+180) INTO DTFR;
-            
-        #     -- For site-to-site:
-        #     CALL main.db_pro_sitetositemovement_firsttimepopulation_outward(DTFR, CURRENT_DATE);
-        #     --CALL main.db_pro_sitetositemovement_firsttimepopulation_inward(DTFR, CURRENT_DATE);
-        #     CALL main.db_pro_sitetositemovement_not_in_outward();
-        #     CALL main.db_proc_sitetosite_intransum(DTFR); -- Start date
-            
-        #     -- For composite GST:
-        #     CALL main.db_pro_compositegst_firsttimepopulation(DTFR, CURRENT_DATE);
-            
-        #     -- For stock book summary:
-        #     CALL main.db_pro_stk_bk_summary_master_build(DTFR);
-            
-        #     -- For stock ageing summary:
-        #     CALL db_pro_stk_ageing_firsttime();
-        # END $$;
-        # """)
-        # Commit the transaction
         connection.commit()
         # Log successful execution
         log_window.append(f'Success: Executed patch {patch_path} on database {dbname}.')
