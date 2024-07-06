@@ -4,6 +4,9 @@ import json
 import shutil
 import subprocess
 import psycopg2
+import requests
+import os
+import zipfile
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
     QLineEdit, QPushButton, QComboBox, QTextEdit, QMessageBox
@@ -20,6 +23,70 @@ job_patch_path = r'C:\Program Files\edb\prodmig\PostMigPatches\patch_jobs.sql'
 migrationapp_path = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\RunEDBCommand.exe'
 audittriggerapp_path = r'C:\Program Files\edb\prodmig\AuditTriggerCMDNew\netcoreapp3.1\TriggerConstraintViewCreationForAuditPostMigration.exe'
 comparetoolapp_path = r'C:\Program Files\edb\prodmig\Ora2PGCompToolKit\Debug\OraPostGreSqlComp.exe'
+version_path = r'C:\Users\sultan.m\Documents\GitHub\FinalMig\version.txt'
+
+def get_latest_release_info(repo,token):
+    api_url = f"https://api.github.com/repos/{repo}/releases/latest"
+    headers = {
+            'Authorization': f'token {token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+    response = requests.get(api_url,headers=headers)
+    
+    if response.status_code == 200:
+        response.raise_for_status()
+        release_info = response.json()
+        return release_info
+    else:
+        print(f"Failed to fetch release information. Status code: {response.status_code}")
+        return None
+
+def checkForUpdates(log_window):
+    log_window.append('Checking for updates...')
+    try:
+        repo = "i-am-sultan/FinalMig"
+        token = f'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'
+        latest_release = get_latest_release_info(repo,token)
+        print(latest_release)
+        latest_version = latest_release['tag_name']
+        update_url = latest_release['assets'][0]['browser_download_url']
+
+        global version_path
+
+        # Read the current version from a file (version.txt in the app directory)
+        with open(version_path, 'r') as f:
+            current_version = f.read().strip()
+
+        log_window.append(f'Current version: {current_version}')
+        log_window.append(f'Latest version: {latest_version}')
+
+        # Compare versions
+        if latest_version != current_version:
+            log_window.append('New version available. Downloading and applying update...')
+
+            # Download the update
+            response = requests.get(update_url)
+            update_zip_path = 'latest_update.zip'
+            with open(update_zip_path, 'wb') as f:
+                f.write(response.content)
+
+            # Extract the update
+            with zipfile.ZipFile(update_zip_path, 'r') as zip_ref:
+                zip_ref.extractall('.')
+
+            # Cleanup the zip file
+            os.remove(update_zip_path)
+
+            # Update the current version
+            with open(version_path, 'w') as f:
+                f.write(latest_version)
+
+            log_window.append('Update applied successfully.')
+        else:
+            log_window.append('You are already using the latest version.')
+    except Exception as e:
+        log_window.append(f'Error checking and applying updates: {e}')
+
 
 
 def updateOraCon(OraSchema, OraHost,oraPort, OraPass,OraService, filepath, log_window):
@@ -112,7 +179,6 @@ def updatePatchLive(pgDbname, filepath, log_window):
         log_window.append(f'Successfully updated patch_live.sql for database {pgDbname}.')
     except Exception as e:
         log_window.append(f'Error updating patch_live.sql: {e}')
-
 
 def copyFiles(destination_dir, log_window):
     try:
@@ -314,6 +380,11 @@ class UpdateConnectionApp(QWidget):
         self.exitButton.clicked.connect(self.closeApplication)
         button_layout.addWidget(self.exitButton)
 
+        # New button for checking and applying updates
+        self.update_app_button = QPushButton('Check and Apply Updates')
+        self.update_app_button.clicked.connect(self.checkAndApplyUpdates)
+        button_layout.addWidget(self.update_app_button) 
+
         self.logWindow = QTextEdit()
         self.logWindow.setReadOnly(True)
 
@@ -324,7 +395,9 @@ class UpdateConnectionApp(QWidget):
         self.setLayout(main_layout)
         # Load initial credentials from configuration files
         self.loadCredentialsFromFiles()
-    
+
+    def checkAndApplyUpdates(self):
+        checkForUpdates(self.logWindow)
     def loadCredentialsFromFiles(self):
         try:
             # Pre-specified file paths
