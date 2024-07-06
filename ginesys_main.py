@@ -9,6 +9,19 @@ from PyQt5.QtWidgets import (
     QLineEdit, QPushButton, QComboBox, QTextEdit, QMessageBox
 )
 
+oracon_path = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\OraCon.txt'
+pgcon_path = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\pgCon.txt'
+toolkit_path = r'C:\Program Files\edb\mtk\etc\toolkit.properties'
+connection_json_path = r'C:\Program Files\edb\prodmig\Ora2PGCompToolKit\Debug\Connection.json'
+audit_path = r'C:\Program Files\edb\prodmig\AuditTriggerCMDNew\netcoreapp3.1'
+patch_drill_path = r'C:\Program Files\edb\prodmig\PostMigPatches\patch_drill.sql'
+patch_live_path = r'C:\Program Files\edb\prodmig\PostMigPatches\patch_live.sql'
+job_patch_path = r'C:\Program Files\edb\prodmig\PostMigPatches\patch_jobs.sql'
+migrationapp_path = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\RunEDBCommand.exe'
+audittriggerapp_path = r'C:\Program Files\edb\prodmig\AuditTriggerCMDNew\netcoreapp3.1\TriggerConstraintViewCreationForAuditPostMigration.exe'
+comparetoolapp_path = r'C:\Program Files\edb\prodmig\Ora2PGCompToolKit\Debug\OraPostGreSqlComp.exe'
+
+
 def updateOraCon(OraSchema, OraHost,oraPort, OraPass,OraService, filepath, log_window):
     content = (
             f"User Id={OraSchema};Password={OraPass};"
@@ -104,8 +117,8 @@ def updatePatchLive(pgDbname, filepath, log_window):
 def copyFiles(destination_dir, log_window):
     try:
         # Pre-specified file paths
-        oracon_path = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\OraCon.txt'
-        pgcon_path = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\pgCon.txt'
+        global oracon_path
+        global pgcon_path
 
         shutil.copy(oracon_path, destination_dir)
         shutil.copy(pgcon_path, destination_dir)
@@ -315,8 +328,8 @@ class UpdateConnectionApp(QWidget):
     def loadCredentialsFromFiles(self):
         try:
             # Pre-specified file paths
-            oracon_path = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\OraCon.txt'
-            pgcon_path = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\pgCon.txt'
+            global oracon_path
+            global pgcon_path
 
             with open(oracon_path, 'r') as f1:
                 content = f1.read()
@@ -370,10 +383,11 @@ class UpdateConnectionApp(QWidget):
             return
         try:
             # Pre-specified file paths
-            oracon_path = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\OraCon.txt'
-            pgcon_path = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\pgCon.txt'
-            toolkit_path = r'C:\Program Files\edb\mtk\etc\toolkit.properties'
-            connection_json_path = r'C:\Program Files\edb\prodmig\Ora2PGCompToolKit\Debug\Connection.json'
+            global oracon_path
+            global pgcon_path
+            global toolkit_path
+            global connection_json_path
+            global audit_path
 
             updateOraCon(OraSchema, OraHost,OraPort,OraPass,OraService, oracon_path, self.logWindow)
             print(f"pgHost{pgHost},pgUser{pgUser},pgPass{pgPass}, pgPort{pgPort},pgDbName")
@@ -382,8 +396,7 @@ class UpdateConnectionApp(QWidget):
             updateConnectionJson(OraSchema, OraHost, OraPort, OraPass, OraService, pgHost,pgPort, pgUser, pgPass, pgDbName, connection_json_path, self.logWindow)
 
             # Copy the files to the destination directory
-            destination_dir = r'C:\Program Files\edb\prodmig\AuditTriggerCMDNew\netcoreapp3.1'
-            success = copyFiles(destination_dir, self.logWindow)
+            success = copyFiles(audit_path, self.logWindow)
             if success:
                 QMessageBox.information(self, 'Success', 'Connections updated and files copied successfully.')
             else:
@@ -395,29 +408,30 @@ class UpdateConnectionApp(QWidget):
 
     def executeSQLPatch(self):
         patch_choice = self.patchComboBox.currentText()
-        pgCon_path = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\pgCon.txt'
+        global pgcon_path
+        global patch_drill_path
+        global patch_live_path
 
-        with open(pgCon_path, 'r') as file:
+        with open(pgcon_path, 'r') as file:
             content = file.read()
         dbname_match = re.search(r'Database=([^;]+)', content)
         if dbname_match:
             pgDbname = dbname_match.group(1)
 
             if patch_choice == "Drill":
-                patch_drill = r'C:\Program Files\edb\prodmig\PostMigPatches\patch_drill.sql'
-                updatePatchDrill(pgDbname, patch_drill, self.logWindow)
-                executePatch(pgDbname, patch_drill, self.logWindow)  # Example execution after update
+                updatePatchDrill(pgDbname, patch_drill_path, self.logWindow)
+                executePatch(pgDbname, patch_drill_path, self.logWindow)  # Example execution after update
             elif patch_choice == "Live Migration":
-                patch_live = r'C:\Program Files\edb\prodmig\PostMigPatches\patch_live.sql'
-                updatePatchLive(pgDbname, patch_live, self.logWindow)
-                executePatch(pgDbname, patch_live, self.logWindow)  # Example execution after update
+                updatePatchLive(pgDbname, patch_live_path, self.logWindow)
+                executePatch(pgDbname, patch_live_path, self.logWindow)  # Example execution after update
         else:
             QMessageBox.warning(self, 'Database not found', 'Unable to determine database name from pgCon.txt.')
 
     def createJobs(self):
-        oracon_path = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\OraCon.txt'
-        pgcon_path = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\pgCon.txt'
-        job_patch = r'C:\Program Files\edb\prodmig\PostMigPatches\patch_jobs.sql'
+
+        global oracon_path
+        global pgcon_path
+        global job_patch_path
 
         with open(oracon_path, 'r') as f1:
             content = f1.read()
@@ -439,28 +453,24 @@ class UpdateConnectionApp(QWidget):
             self.logWindow.append("Database name not found in pgCon.txt")
             return
 
-        createJobs(schema_name, dbname, job_patch, self.logWindow)
+        createJobs(schema_name, dbname, job_patch_path, self.logWindow)
 
     def runMigrationApp(self):
-        migrationapp = r'C:\Program Files\edb\prodmig\RunCMDEdb_New\netcoreapp3.1\RunEDBCommand.exe'
-        self.runExternalApp(migrationapp)
+        global migrationapp_path
+        self.runExternalApp(migrationapp_path)
 
     def runAuditApp(self):
-        audittriggerapp = r'C:\Program Files\edb\prodmig\AuditTriggerCMDNew\netcoreapp3.1\TriggerConstraintViewCreationForAuditPostMigration.exe'
-        self.runExternalApp(audittriggerapp)
+        global audittriggerapp_path
+        self.runExternalApp(audittriggerapp_path)
 
     def runCompareToolApp(self):
-        comparetoolapp = r'C:\Program Files\edb\prodmig\Ora2PGCompToolKit\Debug\OraPostGreSqlComp.exe'
-        self.runExternalApp(comparetoolapp)
+        global comparetoolapp_path
+        self.runExternalApp(comparetoolapp_path)
 
     def runExternalApp(self, app_path):
         try:
             if sys.platform.startswith('win'):
                 subprocess.Popen(f'start cmd /c "{app_path}"', shell=True)
-            elif sys.platform.startswith('linux'):
-                subprocess.Popen(['gnome-terminal', '--', app_path])
-            elif sys.platform.startswith('darwin'):
-                subprocess.Popen(['open', '-a', 'Terminal', app_path])
             else:
                 self.logWindow.append('Unsupported OS.')
                 QMessageBox.critical(self, 'Error', 'Unsupported OS.')
