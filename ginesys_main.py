@@ -338,7 +338,7 @@ class UpdateConnectionApp(QWidget):
             port_match = re.search(r'PORT=([^)]+)', content)
             pass_match = re.search(r'Password=([^;]+)', content)
             service_match = re.search(r'SERVICE_NAME=([^)]+)',content)
-            if schema_match and host_match and pass_match and service_match:
+            if schema_match and host_match and port_match and pass_match and service_match:
                 self.oraSchemaInput.setText(schema_match.group(1))
                 self.oraHostInput.setText(host_match.group(1))
                 self.oraPortInput.setText(port_match.group(1))
@@ -354,14 +354,14 @@ class UpdateConnectionApp(QWidget):
             pgport_match = re.search(r'Port=([^;]+);', content)
             pgpass_match = re.search(r'Password=([^;]+);', content)
             pguser_match = re.search(r'User Id=([^;]+);', content)
-            if dbname_match:
+            if dbname_match and pghost_match and pgport_match and pguser_match and pgpass_match:
                 self.pgDbNameInput.setText(dbname_match.group(1))
                 self.pgHostInput.setText(pghost_match.group(1))
                 self.pgPortInput.setText(pgport_match.group(1))
                 self.pgPassInput.setText(pgpass_match.group(1))
                 self.pgUserInput.setText(pguser_match.group(1))
             else:
-                self.logWindow.append("Error: PostgreSQL database name not found in pgCon.txt")
+                self.logWindow.append("Error: PostgreSQL Credentials not found in pgCon.txt")
 
         except Exception as e:
             self.logWindow.append(f'Error loading credentials from files: {e}')
@@ -390,7 +390,6 @@ class UpdateConnectionApp(QWidget):
             global audit_path
 
             updateOraCon(OraSchema, OraHost,OraPort,OraPass,OraService, oracon_path, self.logWindow)
-            print(f"pgHost{pgHost},pgUser{pgUser},pgPass{pgPass}, pgPort{pgPort},pgDbName")
             updatepgCon(pgHost,pgPort, pgUser,pgPass,pgDbName, pgcon_path, self.logWindow)
             updateToolkit(OraSchema, OraHost,OraPort, OraPass, OraService, pgHost,pgPort, pgUser, pgPass, pgDbName, toolkit_path, self.logWindow)
             updateConnectionJson(OraSchema, OraHost, OraPort, OraPass, OraService, pgHost,pgPort, pgUser, pgPass, pgDbName, connection_json_path, self.logWindow)
@@ -411,13 +410,9 @@ class UpdateConnectionApp(QWidget):
         global pgcon_path
         global patch_drill_path
         global patch_live_path
+        pgDbname = self.pgDbNameInput.text()
 
-        with open(pgcon_path, 'r') as file:
-            content = file.read()
-        dbname_match = re.search(r'Database=([^;]+)', content)
-        if dbname_match:
-            pgDbname = dbname_match.group(1)
-
+        if pgDbname:
             if patch_choice == "Drill":
                 updatePatchDrill(pgDbname, patch_drill_path, self.logWindow)
                 executePatch(pgDbname, patch_drill_path, self.logWindow)  # Example execution after update
@@ -432,22 +427,17 @@ class UpdateConnectionApp(QWidget):
         global oracon_path
         global pgcon_path
         global job_patch_path
-
-        with open(oracon_path, 'r') as f1:
-            content = f1.read()
-        schema_match = re.search(r'User Id=([^;]+)', content)
-        if schema_match:
-            schema_name = schema_match.group(1)
+        
+        schema_name= self.oraSchemaInput.text()
+        if schema_name:
             self.logWindow.append(f"Schema name found: {schema_name}")
         else:
             self.logWindow.append("Schema name not found in OraCon.txt")
             return
 
-        with open(pgcon_path, 'r') as file:
-            content = file.read()
-        dbname_match = re.search(r'Database=([^;]+)', content)
-        if dbname_match:
-            dbname = dbname_match.group(1)
+        dbname = self.pgDbNameInput.text()
+        if dbname:
+            # dbname = dbname_match.group(1)
             self.logWindow.append(f"Database name found: {dbname}")
         else:
             self.logWindow.append("Database name not found in pgCon.txt")
