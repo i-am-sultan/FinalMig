@@ -25,16 +25,15 @@ audittriggerapp_path = r'C:\Program Files\edb\prodmig\AuditTriggerCMDNew\netcore
 comparetoolapp_path = r'C:\Program Files\edb\prodmig\Ora2PGCompToolKit\Debug\OraPostGreSqlComp.exe'
 version_path = r'C:\Users\sultan.m\Documents\GitHub\FinalMig\version.txt'
 
-def get_latest_release_info(repo,token):
+def get_latest_release_info(repo, token):
     api_url = f"https://api.github.com/repos/{repo}/releases/latest"
     headers = {
-            'Authorization': f'token {token}',
-            'Accept': 'application/vnd.github.v3+json'
-        }
-    response = requests.get(api_url,headers=headers)
-    
+        'Authorization': f'token {token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    response = requests.get(api_url, headers=headers)
+
     if response.status_code == 200:
-        response.raise_for_status()
         release_info = response.json()
         return release_info
     else:
@@ -45,48 +44,61 @@ def checkForUpdates(log_window):
     log_window.append('Checking for updates...')
     try:
         repo = "i-am-sultan/FinalMig"
-        token = f'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'
-        latest_release = get_latest_release_info(repo,token)
-        print(latest_release)
-        latest_version = latest_release['tag_name']
-        update_url = latest_release['assets'][0]['browser_download_url']
+        token = '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'  # Replace with your personal access token
+        latest_release = get_latest_release_info(repo, token)
 
-        global version_path
+        if latest_release:
+            latest_version = latest_release['tag_name']
+            assets = latest_release['assets']
 
-        # Read the current version from a file (version.txt in the app directory)
-        with open(version_path, 'r') as f:
-            current_version = f.read().strip()
+            if assets:
+                update_asset = assets[0]  # Assuming the first asset is the one you want to download
+                print(update_asset)
+                update_url = update_asset['browser_download_url']
 
-        log_window.append(f'Current version: {current_version}')
-        log_window.append(f'Latest version: {latest_version}')
+                global version_path
 
-        # Compare versions
-        if latest_version != current_version:
-            log_window.append('New version available. Downloading and applying update...')
+                # Read the current version from a file (version.txt in the app directory)
+                with open(version_path, 'r') as f:
+                    current_version = f.read().strip()
 
-            # Download the update
-            response = requests.get(update_url)
-            update_zip_path = 'latest_update.zip'
-            with open(update_zip_path, 'wb') as f:
-                f.write(response.content)
+                log_window.append(f'Current version: {current_version}')
+                log_window.append(f'Latest version: {latest_version}')
 
-            # Extract the update
-            with zipfile.ZipFile(update_zip_path, 'r') as zip_ref:
-                zip_ref.extractall('.')
+                # Compare versions
+                if latest_version != current_version:
+                    log_window.append('New version available. Downloading and applying update...')
 
-            # Cleanup the zip file
-            os.remove(update_zip_path)
+                    # Download the update
+                    response = requests.get(update_url)
+                    print(update_url)
+                    print(response)
 
-            # Update the current version
-            with open(version_path, 'w') as f:
-                f.write(latest_version)
+                    if response.status_code == 200:
+                        update_filename = os.path.basename(update_url)
+                        update_file_path = os.path.join(os.getcwd(), update_filename)
 
-            log_window.append('Update applied successfully.')
+                        with open(update_file_path, 'wb') as f:
+                            f.write(response.content)
+
+                        log_window.append('Update downloaded successfully.')
+
+                        # Update the current version
+                        with open(version_path, 'w') as f:
+                            f.write(latest_version)
+
+                        log_window.append('Update applied successfully.')
+                    else:
+                        log_window.append(f"Failed to download update. Status code: {response.status_code}")
+                else:
+                    log_window.append('You are already using the latest version.')
+            else:
+                log_window.append('No assets found in the latest release.')
         else:
-            log_window.append('You are already using the latest version.')
+            log_window.append('Failed to fetch latest release information.')
+
     except Exception as e:
         log_window.append(f'Error checking and applying updates: {e}')
-
 
 
 def updateOraCon(OraSchema, OraHost,oraPort, OraPass,OraService, filepath, log_window):
@@ -101,9 +113,7 @@ def updateOraCon(OraSchema, OraHost,oraPort, OraPass,OraService, filepath, log_w
     log_window.append(content)
 
 def updatepgCon(pgHost,pgPort, pgUser,pgPass, pgDbName, filepath, log_window):
-    print(f"pgPort: {pgPort}")
     content = (f"Server={pgHost};Port={pgPort};Database={pgDbName};User Id={pgUser};Password={pgPass};ApplicationName=w3wp.exe;Ssl Mode=Require;")
-    print(content)
     with open(filepath, 'w') as f1:
         f1.write(content)
     log_window.append('\npgCon: ')
@@ -196,90 +206,90 @@ def copyFiles(destination_dir, log_window):
         log_window.append(f'Error copying files: {e}')
         return False
 
-def executePatch(dbname, patch_path, log_window):
+def executePatch(pgHost,pgPort,pgUserName,pgPass,pgDbname, patch_path, log_window):
     connection = None
     cursor = None
     try:
         # Read the SQL patch file
         with open(patch_path, 'r') as f1:
             content = f1.read()
-        content = re.sub(r"dbname [^,]+", f"dbname '{dbname}'", content)
+        content = re.sub(r"dbname [^,]+", f"dbname '{pgDbname}'", content)
         with open(patch_path, 'w') as f1:
             f1.write(content)
         # Connect to the PostgreSQL database
-        connection = psycopg2.connect(database=dbname, user='gslpgadmin', password='qs$3?j@*>CA6!#Dy', host="psql-erp-prod-01.postgres.database.azure.com", port=5432)
+        connection = psycopg2.connect(database=pgDbname, user=pgUserName, password=pgPass, host=pgHost, port=pgPort)
         cursor = connection.cursor()
         cursor.execute(content)
         connection.commit()
         
-        connection = psycopg2.connect(database=dbname, user='gslpgadmin', password='qs$3?j@*>CA6!#Dy', host="psql-erp-prod-01.postgres.database.azure.com", port=5432)
+        connection = psycopg2.connect(database=pgDbname, user=pgUserName, password=pgPass, host=pgHost, port=pgPort)
         connection.autocommit = True
         cursor = connection.cursor()
         cursor.execute('CALL populate_first_time_migdata()')
         # Commit the transaction
         connection.commit()
         # Log successful execution
-        log_window.append(f'Success: Executed patch {patch_path} on database {dbname}.')
+        log_window.append(f'Success: Executed patch {patch_path} on database {pgDbname}.')
     except psycopg2.Error as e:
         # Log any psycopg2 database errors
-        log_window.append(f'Error: Failed to execute patch {patch_path} on database {dbname}. Error: {e}')
+        log_window.append(f'Error: Failed to execute patch {patch_path} on database {pgDbname}. Error: {e}')
     except Exception as e:
         # Log any other unexpected errors
-        log_window.append(f'Error: Failed to execute patch {patch_path} on database {dbname}. Unexpected error: {e}')
+        log_window.append(f'Error: Failed to execute patch {patch_path} on database {pgDbname}. Unexpected error: {e}')
     finally:
         if cursor:
             cursor.close()
         if connection:
             connection.close()
 
-def createJobs(schema_name, dbname, job_patch, log_window):
+def createJobs(schema_name, pgHost, pgUserName, pgPort, pgPass, pgDbname, job_patch_path, log_window):
     connection = None
     cursor = None
     
     try:
-        with open(job_patch, 'r') as f1:
+        with open(job_patch_path, 'r') as f1:
             content = f1.read()
 
         patterns = [
             (r"select cron\.schedule_in_database\('GINESYS_AUTO_SETTLEMENT_JOB_[^']+','[^']+','[^']+','[^']+'\);",
-             f"select cron.schedule_in_database('GINESYS_AUTO_SETTLEMENT_JOB_{schema_name.upper()}','*/15 * * * *','call main.db_pro_auto_settle_unpost()','{dbname}');"),
+             f"select cron.schedule_in_database('GINESYS_AUTO_SETTLEMENT_JOB_{schema_name.upper()}','*/15 * * * *','call main.db_pro_auto_settle_unpost()','{pgDbname}');"),
             (r"select cron\.schedule_in_database\('GINESYS_DATA_SERVICE_2[^']+','[^']+','[^']+','[^']+'\);",
-             f"select cron.schedule_in_database('GINESYS_DATA_SERVICE_2_{schema_name.upper()}','*/1 * * * *','call main.db_pro_gds2_event_enqueue()','{dbname}');"),
+             f"select cron.schedule_in_database('GINESYS_DATA_SERVICE_2_{schema_name.upper()}','*/1 * * * *','call main.db_pro_gds2_event_enqueue()','{pgDbname}');"),
             (r"select cron\.schedule_in_database\('GINESYS_INVSTOCK_INTRA_LOG_AGG[^']+','[^']+','[^']+','[^']+'\);",
-             f"select cron.schedule_in_database('GINESYS_INVSTOCK_INTRA_LOG_AGG_{schema_name.upper()}','30 seconds','call main.invstock_intra_log_refresh()','{dbname}');"),
+             f"select cron.schedule_in_database('GINESYS_INVSTOCK_INTRA_LOG_AGG_{schema_name.upper()}','30 seconds','call main.invstock_intra_log_refresh()','{pgDbname}');"),
             (r"select cron\.schedule_in_database\('GINESYS_INVSTOCK_LOG_AGG[^']+','[^']+','[^']+','[^']+'\);",
-             f"select cron.schedule_in_database('GINESYS_INVSTOCK_LOG_AGG_{schema_name.upper()}','30 seconds','call main.invstock_log_refresh()','{dbname}');"),
+             f"select cron.schedule_in_database('GINESYS_INVSTOCK_LOG_AGG_{schema_name.upper()}','30 seconds','call main.invstock_log_refresh()','{pgDbname}');"),
             (r"select cron\.schedule_in_database\('GINESYS_PERIOD_CLOSURE_JOB[^']+','[^']+','[^']+','[^']+'\);",
-             f"select cron.schedule_in_database('GINESYS_PERIOD_CLOSURE_JOB_{schema_name.upper()}','*/2 * * * *','call main.db_pro_period_closure_dequeue()','{dbname}');"),
+             f"select cron.schedule_in_database('GINESYS_PERIOD_CLOSURE_JOB_{schema_name.upper()}','*/2 * * * *','call main.db_pro_period_closure_dequeue()','{pgDbname}');"),
             (r"select cron\.schedule_in_database\('GINESYS_POS_STLM_AUDIT[^']+','[^']+','[^']+','[^']+'\);",
-             f"select cron.schedule_in_database('GINESYS_POS_STLM_AUDIT_{schema_name.upper()}','*/5 * * * *','call main.db_pro_pos_stlm_audit()','{dbname}');"),
+             f"select cron.schedule_in_database('GINESYS_POS_STLM_AUDIT_{schema_name.upper()}','*/5 * * * *','call main.db_pro_pos_stlm_audit()','{pgDbname}');"),
             (r"select cron\.schedule_in_database\('GINESYS_RECALCULATE_TAX_JOB[^']+','[^']+','[^']+','[^']+'\);",
-             f"select cron.schedule_in_database('GINESYS_RECALCULATE_TAX_JOB_{schema_name.upper()}','*/30 * * * *','call main.db_pro_recalculategst()','{dbname}');"),
+             f"select cron.schedule_in_database('GINESYS_RECALCULATE_TAX_JOB_{schema_name.upper()}','*/30 * * * *','call main.db_pro_recalculategst()','{pgDbname}');"),
             (r"select cron\.schedule_in_database\('GINESYS_STOCK_BOOK_PIPELINE_DELTA_AGG[^']+','[^']+','[^']+','[^']+'\);",
-             f"select cron.schedule_in_database('GINESYS_STOCK_BOOK_PIPELINE_DELTA_AGG_{schema_name.upper()}','*/5 * * * *','call db_pro_delta_agg_pipeline_stock()','{dbname}');"),
+             f"select cron.schedule_in_database('GINESYS_STOCK_BOOK_PIPELINE_DELTA_AGG_{schema_name.upper()}','*/5 * * * *','call db_pro_delta_agg_pipeline_stock()','{pgDbname}');"),
             (r"select cron\.schedule_in_database\('GINESYS_STOCK_BOOK_SUMMARY_DELTA_AGG[^']+','[^']+','[^']+','[^']+'\);",
-             f"select cron.schedule_in_database('GINESYS_STOCK_BOOK_SUMMARY_DELTA_AGG_{schema_name.upper()}','*/5 * * * *','call db_pro_delta_agg_stock_book_summary()','{dbname}');"),
+             f"select cron.schedule_in_database('GINESYS_STOCK_BOOK_SUMMARY_DELTA_AGG_{schema_name.upper()}','*/5 * * * *','call db_pro_delta_agg_stock_book_summary()','{pgDbname}');"),
             (r"select cron\.schedule_in_database\('GINESYS_STOCK_AGEING_DELTA_AGG[^']+','[^']+','[^']+','[^']+'\);",
-             f"select cron.schedule_in_database('GINESYS_STOCK_AGEING_DELTA_AGG_{schema_name.upper()}','*/5 * * * *','call db_pro_delta_agg_stock_age_analysis()','{dbname}');")
+             f"select cron.schedule_in_database('GINESYS_STOCK_AGEING_DELTA_AGG_{schema_name.upper()}','*/5 * * * *','call db_pro_delta_agg_stock_age_analysis()','{pgDbname}');")
         ]
 
         for pattern, replacement in patterns:
             content = re.sub(pattern, replacement, content)
 
-        with open(job_patch, 'w') as f1:
+        with open(job_patch_path, 'w') as f1:
             f1.write(content)
 
         # Connect to the PostgreSQL database and execute the patched SQL
-        connection = psycopg2.connect(database='postgres', user='gslpgadmin', password='qs$3?j@*>CA6!#Dy', host="psql-erp-prod-01.postgres.database.azure.com", port=5432)
+        connection = psycopg2.connect(database=pgDbname, user=pgUserName, password=pgPass, host=pgHost, port=pgPort)
         cursor = connection.cursor()
         cursor.execute(content)
         connection.commit()
 
-        log_window.append(f'Successfully executed job patch {job_patch} on database {dbname}.')
+        log_window.append(f'Successfully executed job patch {job_patch_path} on database {pgDbname}.')
     except psycopg2.Error as e:
-        log_window.append(f'Error executing job patch {job_patch} on database {dbname}: {e}')
+        log_window.append(f'Error executing job patch {job_patch_path} on database {pgDbname}: {e}')
     except Exception as e:
-        log_window.append(f'Unexpected error executing job patch {job_patch} on database {dbname}: {e}')
+        log_window.append(f'Unexpected error executing job patch {job_patch_path} on database {pgDbname}: {e}')
     finally:
         if cursor:
             cursor.close()
@@ -484,14 +494,18 @@ class UpdateConnectionApp(QWidget):
         global patch_drill_path
         global patch_live_path
         pgDbname = self.pgDbNameInput.text()
+        pgUserName = self.pgUserInput.text()
+        pgHost = self.pgHostInput.text()
+        pgPort = self.pgPortInput.text()
+        pgPass = self.pgPassInput.text()
 
         if pgDbname:
             if patch_choice == "Drill":
                 updatePatchDrill(pgDbname, patch_drill_path, self.logWindow)
-                executePatch(pgDbname, patch_drill_path, self.logWindow)  # Example execution after update
+                executePatch(pgHost,pgPort,pgUserName,pgPass,pgDbname, patch_drill_path, self.logWindow)  # Example execution after update
             elif patch_choice == "Live Migration":
                 updatePatchLive(pgDbname, patch_live_path, self.logWindow)
-                executePatch(pgDbname, patch_live_path, self.logWindow)  # Example execution after update
+                executePatch(pgHost,pgPort,pgUserName,pgPass,pgDbname, patch_live_path, self.logWindow)  # Example execution after update
         else:
             QMessageBox.warning(self, 'Database not found', 'Unable to determine database name from pgCon.txt.')
 
@@ -500,23 +514,15 @@ class UpdateConnectionApp(QWidget):
         global oracon_path
         global pgcon_path
         global job_patch_path
-        
+
+        pgDbname = self.pgDbNameInput.text()
+        pgUserName = self.pgUserInput.text()
+        pgHost = self.pgHostInput.text()
+        pgPort = self.pgPortInput.text()
+        pgPass = self.pgPassInput.text()
         schema_name= self.oraSchemaInput.text()
-        if schema_name:
-            self.logWindow.append(f"Schema name found: {schema_name}")
-        else:
-            self.logWindow.append("Schema name not found in OraCon.txt")
-            return
 
-        dbname = self.pgDbNameInput.text()
-        if dbname:
-            # dbname = dbname_match.group(1)
-            self.logWindow.append(f"Database name found: {dbname}")
-        else:
-            self.logWindow.append("Database name not found in pgCon.txt")
-            return
-
-        createJobs(schema_name, dbname, job_patch_path, self.logWindow)
+        createJobs(schema_name, pgHost, pgUserName, pgPort, pgPass, pgDbname, job_patch_path, self.logWindow)
 
     def runMigrationApp(self):
         global migrationapp_path
